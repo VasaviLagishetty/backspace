@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  HOST
+  ADMIN
+}
+
+enum VehicleType {
+  PETROL
+  DIESEL
+  EV
+  HYBRID
+}
+
+enum SpotStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXTENDED
+}
+
+enum PaymentStatus {
+  PENDING
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  phone         String?   @unique
+  passwordHash  String?
+  googleId      String?   @unique
+  avatar        String?
+  role          UserRole  @default(USER)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  vehicles      Vehicle[]
+  spots         ParkingSpot[]
+  bookings      Booking[]
+  reviewsGiven  Review[]      @relation("ReviewAuthor")
+  reviewsReceived Review[]    @relation("ReviewTarget")
+  favorites     Favorite[]
+  notifications Notification[]
+  issues        Issue[]
+}
+
+model Vehicle {
+  id        String      @id @default(cuid())
+  userId    String
+  make      String
+  model     String
+  year      Int
+  type      VehicleType
+  licensePlate String   @unique
+  width     Float       // in meters
+  length    Float       // in meters
+  height    Float?
+  createdAt DateTime    @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+}
+
+model ParkingSpot {
+  id            String      @id @default(cuid())
+  hostId        String
+  title         String
+  description   String?
+  address       String
+  city          String      @default("Bangalore")
+  latitude      Float
+  longitude     Float
+  width         Float       // in meters
+  length        Float       // in meters
+  height        Float?      // clearance height
+  pricePerHour  Float
+  pricePerDay   Float?
+  status        SpotStatus  @default(ACTIVE)
+  isEvCharging  Boolean     @default(false)
+  evChargerType String?     // Type2, CCS, CHAdeMO
+  amenities     String[]    // covered, cctv, security, etc.
+  images        String[]
+  nearbyLandmark String?
+  totalRating   Float       @default(0)
+  ratingCount   Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  host          User        @relation(fields: [hostId], references: [id])
+  availability  Availability[]
+  bookings      Booking[]
+  reviews       Review[]
+  favorites     Favorite[]
+  issues        Issue[]
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  spotId    String
+  dayOfWeek Int?     // 0=Sun..6=Sat, null=specific date
+  date      DateTime?
+  startTime String   // "08:00"
+  endTime   String   // "22:00"
+  isBlocked Boolean  @default(false)
+
+  spot      ParkingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  userId          String
+  spotId          String
+  vehicleId       String
+  startTime       DateTime
+  endTime         DateTime
+  originalEndTime DateTime?
+  status          BookingStatus @default(PENDING)
+  totalAmount     Float
+  hostEarnings    Float         // 80% of totalAmount
+  platformFee     Float         // 20% of totalAmount
+  latePenalty     Float         @default(0)
+  confirmationCode String       @unique @default(cuid())
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id])
+  spot            ParkingSpot   @relation(fields: [spotId], references: [id])
+  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id])
+  payment         Payment?
+  review          Review?
+  extensions      BookingExtension[]
+}
+
+model BookingExtension {
+  id          String   @id @default(cuid())
+  bookingId   String
+  extendedTo  DateTime
+  extraAmount Float
+  createdAt   DateTime @default(now())
+
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  bookingId         String        @unique
+  razorpayOrderId   String        @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  amount            Float
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  refundId          String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  authorId    String
+  targetUserId String? // host being reviewed
+  spotId      String?
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  booking     Booking     @relation(fields: [bookingId], references: [id])
+  author      User        @relation("ReviewAuthor", fields: [authorId], references: [id])
+  targetUser  User?       @relation("ReviewTarget", fields: [targetUserId], references: [id])
+  spot        ParkingSpot? @relation(fields: [spotId], references: [id])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  spotId    String
+  createdAt DateTime @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot      ParkingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spotId])
+}
+
+model Issue {
+  id          String      @id @default(cuid())
+  userId      String
+  spotId      String
+  bookingId   String?
+  title       String
+  description String
+  images      String[]
+  status      IssueStatus @default(OPEN)
+  resolution  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id])
+  spot        ParkingSpot @relation(fields: [spotId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // booking, payment, alert, promo
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
