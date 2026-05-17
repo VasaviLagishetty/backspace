@@ -3,6 +3,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   images: {
     domains: ['lh3.googleusercontent.com', 's3.amazonaws.com', 'parking-spots-blr.s3.amazonaws.com'],
   },
