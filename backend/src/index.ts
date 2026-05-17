@@ -39,7 +39,7 @@ app.use(express.json())
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }))
 
 // Stricter rate limits for auth and booking
-const authLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, message: { error: 'Too many attempts, try again in 1 minute' } })
+const authLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, message: { error: 'Too many attempts, try again in 1 minute' } })
 const bookingLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { error: 'Too many booking attempts, try again in 1 minute' } })
 
 app.use('/api/auth', authLimiter, authRoutes)

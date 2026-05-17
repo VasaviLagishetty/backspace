@@ -31,9 +31,9 @@ export default function RegisterPage() {
   const onSubmit = async (data: any) => {
     setLoading(true)
     try {
-      const res = await api.post('/auth/register', data)
-      setAuth(res.data.user, res.data.token, res.data.refreshToken)
-      router.push('/')
+      await api.post('/auth/register', data)
+      toast({ title: 'Registration successful', description: 'Please login with your credentials' })
+      router.push('/login')
     } catch (e: any) {
       toast({ title: 'Registration failed', description: e.response?.data?.error || 'Something went wrong', variant: 'destructive' })
     } finally {

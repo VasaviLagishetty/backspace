@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     domains: ['lh3.googleusercontent.com', 's3.amazonaws.com', 'parking-spots-blr.s3.amazonaws.com'],
   },

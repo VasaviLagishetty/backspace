@@ -43,7 +43,7 @@ export function Navbar() {
               {user.role === 'HOST' && (
                 <Link href="/spots/new">
                   <Button size="sm" className="bg-amber-400 hover:bg-amber-500 text-[#031c47] font-semibold gap-1.5 ml-1">
-                    <PlusCircle className="h-4 w-4" /> List Spot
+                    <PlusCircle className="h-4 w-4" /> Add Spot
                   </Button>
                 </Link>
               )}
@@ -97,7 +97,7 @@ export function Navbar() {
               <Link href="/dashboard" className="block text-white py-1.5" onClick={() => setMobileOpen(false)}>Dashboard</Link>
               <Link href="/favorites" className="block text-white py-1.5" onClick={() => setMobileOpen(false)}>Favorites</Link>
               <Link href="/notifications" className="block text-white py-1.5" onClick={() => setMobileOpen(false)}>Notifications</Link>
-              {user.role === 'HOST' && <Link href="/spots/new" className="block text-amber-400 py-1.5" onClick={() => setMobileOpen(false)}>+ List Spot</Link>}
+              {user.role === 'HOST' && <Link href="/spots/new" className="block text-amber-400 py-1.5" onClick={() => setMobileOpen(false)}>+ Add Spot</Link>}
               <button onClick={() => { logout(); router.push('/'); setMobileOpen(false) }} className="block text-red-400 py-1.5">Logout</button>
             </>
           ) : (

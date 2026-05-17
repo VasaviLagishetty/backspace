@@ -23,9 +23,10 @@ export default function HomePage() {
   const [spots, setSpots] = useState<Spot[]>([])
   const [loading, setLoading] = useState(false)
   const [view, setView] = useState<'list' | 'map'>('list')
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     query: '', isEv: false, minPrice: '', maxPrice: '',
-    startTime: '', endTime: '', lat: '', lng: '',
+    startTime: '', endTime: '', lat: '', lng: '', amenities: '',
   })
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [suggestions, setSuggestions] = useState<{ display_name: string; lat: string; lon: string }[]>([])
@@ -180,39 +181,36 @@ export default function HomePage() {
       </div>
 
       {/* Filters + view toggle */}
-      <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap gap-3 items-center">
-        <input
-          placeholder="Min ₹/hr" type="number"
-          className="w-24 h-9 text-sm border border-gray-200 rounded-full px-3 bg-white outline-none focus:border-[#031c47]"
-          value={filters.minPrice}
-          onChange={e => setFilters(f => ({ ...f, minPrice: e.target.value }))}
-        />
-        <input
-          placeholder="Max ₹/hr" type="number"
-          className="w-24 h-9 text-sm border border-gray-200 rounded-full px-3 bg-white outline-none focus:border-[#031c47]"
-          value={filters.maxPrice}
-          onChange={e => setFilters(f => ({ ...f, maxPrice: e.target.value }))}
-        />
-        <button
-          onClick={() => fetchSpots()}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium border border-[#031c47] text-[#031c47] bg-white hover:bg-[#031c47] hover:text-white transition-all"
-        >
-          <Filter className="h-3.5 w-3.5" /> Apply
-        </button>
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex flex-wrap gap-2 items-center">
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${showFilters ? 'bg-[#031c47] text-white border-[#031c47]' : 'bg-white border-gray-200 text-gray-700 hover:border-[#031c47]'}`}
+          >
+            <Filter className="h-3.5 w-3.5" /> Filters
+          </button>
+          {showFilters && (
+            <>
+              <input placeholder="Min ₹/hr" type="number" className="w-24 h-9 text-sm border border-gray-200 rounded-lg px-3 bg-white outline-none focus:border-[#031c47]" value={filters.minPrice} onChange={e => setFilters(f => ({ ...f, minPrice: e.target.value }))} />
+              <input placeholder="Max ₹/hr" type="number" className="w-24 h-9 text-sm border border-gray-200 rounded-lg px-3 bg-white outline-none focus:border-[#031c47]" value={filters.maxPrice} onChange={e => setFilters(f => ({ ...f, maxPrice: e.target.value }))} />
+              <button onClick={() => fetchSpots()} className="px-4 py-2 rounded-lg text-sm font-medium bg-[#031c47] text-white hover:bg-[#0a2a5c] transition-all">Apply</button>
+            </>
+          )}
 
-        <div className="ml-auto flex items-center gap-1 bg-white border border-gray-200 rounded-full p-1">
+          <div className="ml-auto flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
           <button
             onClick={() => setView('list')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-all ${view === 'list' ? 'bg-[#031c47] text-white' : 'text-gray-500 hover:text-gray-800'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${view === 'list' ? 'bg-[#031c47] text-white' : 'text-gray-500 hover:text-gray-800'}`}
           >
             <List className="h-3.5 w-3.5" /> List
           </button>
           <button
             onClick={() => setView('map')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-all ${view === 'map' ? 'bg-[#031c47] text-white' : 'text-gray-500 hover:text-gray-800'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${view === 'map' ? 'bg-[#031c47] text-white' : 'text-gray-500 hover:text-gray-800'}`}
           >
             <Map className="h-3.5 w-3.5" /> Map
           </button>
+        </div>
         </div>
       </div>
 
@@ -250,13 +248,11 @@ function SpotCard({ spot }: { spot: Spot }) {
   return (
     <Link href={`/spots/${spot.id}`}>
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 transition-all group cursor-pointer">
-        <div className="relative h-48 bg-gray-100">
+        <div className="relative h-36 bg-gray-100">
           {spot.images[0] ? (
             <Image src={spot.images[0]} alt={spot.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-300">
-              <Car className="h-14 w-14" />
-            </div>
+            <Image src={spot.isEvCharging ? '/ev.png' : '/parking.png'} alt={spot.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
           )}
           {spot.isEvCharging && (
             <span className="absolute top-3 left-3 bg-emerald-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
