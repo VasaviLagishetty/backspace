@@ -24,7 +24,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false)
   const [view, setView] = useState<'list' | 'map'>('list')
   const [showFilters, setShowFilters] = useState(false)
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  const [selectedSlots, setSelectedSlots] = useState<number[]>([])
+  const [customHours, setCustomHours] = useState('')
   const [customMinutes, setCustomMinutes] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [filters, setFilters] = useState({
@@ -118,19 +119,20 @@ export default function HomePage() {
             <div className="bg-white/10 backdrop-blur rounded-2xl px-4 py-3 flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 text-blue-200 text-sm font-medium mr-1">
                 <Clock className="h-4 w-4 text-amber-400" />
-                <span>Duration:</span>
+                <span>Quick Select:</span>
               </div>
               {[15, 30, 45, 60].map(min => (
                 <button
                   key={min}
                   type="button"
                   onClick={() => {
-                    setSelectedSlot(selectedSlot === min ? null : min)
+                    setSelectedSlots(prev => prev.includes(min) ? prev.filter(m => m !== min) : [...prev, min])
                     setShowCustomInput(false)
+                    setCustomHours('')
                     setCustomMinutes('')
                   }}
                   className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
-                    selectedSlot === min
+                    selectedSlots.includes(min)
                       ? 'bg-amber-400 text-[#031c47] border-amber-400 shadow-md scale-105'
                       : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
                   }`}
@@ -143,7 +145,6 @@ export default function HomePage() {
                 type="button"
                 onClick={() => {
                   setShowCustomInput(v => !v)
-                  setSelectedSlot(null)
                 }}
                 className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
                   showCustomInput
@@ -157,17 +158,28 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 ml-1">
                   <input
                     type="number"
-                    min={1}
+                    min={0}
+                    placeholder="hrs"
+                    value={customHours}
+                    onChange={e => setCustomHours(e.target.value)}
+                    className="w-16 text-sm rounded-full px-3 py-1.5 bg-white text-gray-800 outline-none border border-amber-400 focus:ring-2 focus:ring-amber-300"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
                     placeholder="mins"
                     value={customMinutes}
                     onChange={e => setCustomMinutes(e.target.value)}
-                    className="w-20 text-sm rounded-full px-3 py-1.5 bg-white text-gray-800 outline-none border border-amber-400 focus:ring-2 focus:ring-amber-300"
+                    className="w-16 text-sm rounded-full px-3 py-1.5 bg-white text-gray-800 outline-none border border-amber-400 focus:ring-2 focus:ring-amber-300"
                   />
                   <button
                     type="button"
                     onClick={() => {
-                      const m = parseInt(customMinutes)
-                      if (m > 0) { setSelectedSlot(m); setShowCustomInput(false) }
+                      const h = parseInt(customHours) || 0
+                      const m = parseInt(customMinutes) || 0
+                      const total = h * 60 + m
+                      if (total > 0) { setSelectedSlots(prev => [...prev, total]); setShowCustomInput(false); setCustomHours(''); setCustomMinutes('') }
                     }}
                     className="px-3 py-1.5 rounded-full bg-amber-400 text-[#031c47] text-sm font-semibold hover:bg-amber-300 transition-all"
                   >
@@ -175,11 +187,19 @@ export default function HomePage() {
                   </button>
                 </div>
               )}
-              {selectedSlot !== null && (
+              {selectedSlots.filter(s => ![15, 30, 45, 60].includes(s)).map((s, i) => (
+                <button
+                  key={`custom-${i}`}
+                  type="button"
+                  onClick={() => setSelectedSlots(prev => { const idx = prev.indexOf(s); return idx > -1 ? [...prev.slice(0, idx), ...prev.slice(idx + 1)] : prev })}
+                  className="px-4 py-1.5 rounded-full text-sm font-semibold transition-all border bg-amber-400 text-[#031c47] border-amber-400 shadow-md scale-105"
+                >
+                  {s >= 60 ? `${Math.floor(s / 60)}h${s % 60 ? ` ${s % 60}m` : ''}` : `${s} min`} ✕
+                </button>
+              ))}
+              {selectedSlots.length > 0 && (
                 <span className="ml-auto text-xs text-amber-300 font-medium">
-                  {selectedSlot >= 60
-                    ? `${Math.floor(selectedSlot / 60)}h${selectedSlot % 60 ? ` ${selectedSlot % 60}m` : ''}`
-                    : `${selectedSlot} min`} selected
+                  {(() => { const t = selectedSlots.reduce((a, b) => a + b, 0); return t >= 60 ? `${Math.floor(t / 60)}h${t % 60 ? ` ${t % 60}m` : ''}` : `${t} min` })() } selected
                 </span>
               )}
             </div>
@@ -309,7 +329,7 @@ export default function HomePage() {
           <>
             <p className="text-sm text-gray-500 mb-4">{spots.length} spot{spots.length !== 1 ? 's' : ''} found</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {spots.map(spot => <SpotCard key={spot.id} spot={spot} />)}
+              {spots.map(spot => <SpotCard key={spot.id} spot={spot} selectedSlots={selectedSlots} />)}
             </div>
           </>
         )}
@@ -318,10 +338,15 @@ export default function HomePage() {
   )
 }
 
-function SpotCard({ spot }: { spot: Spot }) {
+function SpotCard({ spot, selectedSlots }: { spot: Spot; selectedSlots: number[] }) {
   const avg = spot.ratingCount > 0 ? (spot.totalRating / spot.ratingCount).toFixed(1) : null
+  const totalMin = selectedSlots.reduce((a, b) => a + b, 0)
+  const now = new Date()
+  const href = totalMin > 0
+    ? `/spots/${spot.id}?startTime=${now.toISOString()}&duration=${totalMin}`
+    : `/spots/${spot.id}`
   return (
-    <Link href={`/spots/${spot.id}`}>
+    <Link href={href}>
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 transition-all group cursor-pointer">
         <div className="relative h-36 bg-gray-100">
           {spot.images[0] ? (

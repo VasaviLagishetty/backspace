@@ -5,8 +5,12 @@ import axios from 'axios'
 import { prisma } from '../utils/prisma'
 import { signToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt'
 import { authenticate, AuthRequest } from '../middleware/auth'
+import crypto from 'crypto'
 
 const router = Router()
+
+// In-memory OTP store (for dev; use Redis in production)
+const resetOtps = new Map<string, { otp: string; expires: number }>()
 
 // Register
 router.post('/register',
@@ -17,19 +21,29 @@ router.post('/register',
     const errors = validationResult(req)
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
 
-    const { email, password, name, phone, role } = req.body
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) return res.status(409).json({ error: 'Email already registered' })
+    try {
+      const { email, password, name, phone, role } = req.body
+      const existing = await prisma.user.findUnique({ where: { email } })
+      if (existing) return res.status(409).json({ error: 'Email already registered' })
 
-    const passwordHash = await bcrypt.hash(password, 12)
-    const user = await prisma.user.create({
-      data: { email, name, phone, passwordHash, role: role === 'HOST' ? 'HOST' : 'USER' },
-      select: { id: true, email: true, name: true, role: true },
-    })
+      if (phone) {
+        const phoneExists = await prisma.user.findUnique({ where: { phone } })
+        if (phoneExists) return res.status(409).json({ error: 'Phone number already registered' })
+      }
 
-    const token = signToken(user.id, user.role)
-    const refreshToken = signRefreshToken(user.id)
-    res.status(201).json({ user, token, refreshToken })
+      const passwordHash = await bcrypt.hash(password, 12)
+      const user = await prisma.user.create({
+        data: { email, name, phone: phone || null, passwordHash, role: role === 'HOST' ? 'HOST' : 'USER' },
+        select: { id: true, email: true, name: true, role: true },
+      })
+
+      const token = signToken(user.id, user.role)
+      const refreshToken = signRefreshToken(user.id)
+      res.status(201).json({ user, token, refreshToken })
+    } catch (e: any) {
+      console.error('Registration error:', e)
+      res.status(500).json({ error: 'Registration failed. Please try again.' })
+    }
   }
 )
 
@@ -110,5 +124,49 @@ router.patch('/me', authenticate, async (req: Request, res: Response) => { const
   })
   res.json(user)
 })
+
+// Forgot password - send OTP
+router.post('/forgot-password', body('email').isEmail(), async (req: Request, res: Response) => {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+  const { email } = req.body
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user) return res.status(404).json({ error: 'No account found with this email' })
+
+  const otp = crypto.randomInt(100000, 999999).toString()
+  resetOtps.set(email, { otp, expires: Date.now() + 10 * 60 * 1000 }) // 10 min expiry
+
+  // Log OTP in dev (in production, send via email)
+  console.log(`[DEV] Password reset OTP for ${email}: ${otp}`)
+
+  res.json({ message: 'OTP sent to your email' })
+})
+
+// Reset password with OTP
+router.post('/reset-password',
+  body('email').isEmail(),
+  body('otp').isLength({ min: 6, max: 6 }),
+  body('password').isLength({ min: 8 }),
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+    const { email, otp, password } = req.body
+    const stored = resetOtps.get(email)
+
+    if (!stored || stored.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' })
+    if (Date.now() > stored.expires) {
+      resetOtps.delete(email)
+      return res.status(400).json({ error: 'OTP expired. Please request a new one.' })
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12)
+    await prisma.user.update({ where: { email }, data: { passwordHash } })
+    resetOtps.delete(email)
+
+    res.json({ message: 'Password reset successful' })
+  }
+)
 
 export default router

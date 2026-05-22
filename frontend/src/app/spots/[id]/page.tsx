@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { MapPin, Zap, Star, Car, Clock, Shield, Heart, AlertTriangle, Loader2, ChevronLeft } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
@@ -14,11 +14,25 @@ declare global { interface Window { Razorpay: any } }
 export default function SpotDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuthStore()
   const [spot, setSpot] = useState<any>(null)
   const [vehicles, setVehicles] = useState<any[]>([])
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
-  const [booking, setBooking] = useState({ vehicleId: '', startTime: '', endTime: '' })
+
+  const getInitialBooking = () => {
+    const startParam = searchParams.get('startTime')
+    const durationParam = searchParams.get('duration')
+    if (startParam && durationParam) {
+      const start = new Date(startParam)
+      const end = new Date(start.getTime() + parseInt(durationParam) * 60000)
+      const fmt = (d: Date) => d.toISOString().slice(0, 16)
+      return { vehicleId: '', startTime: fmt(start), endTime: fmt(end) }
+    }
+    return { vehicleId: '', startTime: '', endTime: '' }
+  }
+
+  const [booking, setBooking] = useState(getInitialBooking)
   const [loading, setLoading] = useState(false)
   const [bookingLoading, setBookingLoading] = useState(false)
 
