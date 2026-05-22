@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, MapPin, Zap, Filter, Star, Car, List, Map } from 'lucide-react'
+import { Search, MapPin, Zap, Filter, Star, Car, List, Map, Plus, Clock } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +24,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false)
   const [view, setView] = useState<'list' | 'map'>('list')
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  const [customMinutes, setCustomMinutes] = useState('')
+  const [showCustomInput, setShowCustomInput] = useState(false)
   const [filters, setFilters] = useState({
     query: '', isEv: false, minPrice: '', maxPrice: '',
     startTime: '', endTime: '', lat: '', lng: '', amenities: '',
@@ -110,6 +113,78 @@ export default function HomePage() {
           <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">
             Book verified parking spots near malls, theatres & landmarks. Pay securely, park stress-free.
           </p>
+          {/* Time Slot Selector */}
+          <div className="max-w-3xl mx-auto mb-4">
+            <div className="bg-white/10 backdrop-blur rounded-2xl px-4 py-3 flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-blue-200 text-sm font-medium mr-1">
+                <Clock className="h-4 w-4 text-amber-400" />
+                <span>Duration:</span>
+              </div>
+              {[15, 30, 45, 60].map(min => (
+                <button
+                  key={min}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSlot(selectedSlot === min ? null : min)
+                    setShowCustomInput(false)
+                    setCustomMinutes('')
+                  }}
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
+                    selectedSlot === min
+                      ? 'bg-amber-400 text-[#031c47] border-amber-400 shadow-md scale-105'
+                      : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                  }`}
+                >
+                  {min < 60 ? `${min} min` : '1 hr'}
+                </button>
+              ))}
+              {/* Custom duration button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCustomInput(v => !v)
+                  setSelectedSlot(null)
+                }}
+                className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
+                  showCustomInput
+                    ? 'bg-amber-400 text-[#031c47] border-amber-400 shadow-md'
+                    : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                }`}
+              >
+                <Plus className="h-3.5 w-3.5" /> Add
+              </button>
+              {showCustomInput && (
+                <div className="flex items-center gap-2 ml-1">
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="mins"
+                    value={customMinutes}
+                    onChange={e => setCustomMinutes(e.target.value)}
+                    className="w-20 text-sm rounded-full px-3 py-1.5 bg-white text-gray-800 outline-none border border-amber-400 focus:ring-2 focus:ring-amber-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const m = parseInt(customMinutes)
+                      if (m > 0) { setSelectedSlot(m); setShowCustomInput(false) }
+                    }}
+                    className="px-3 py-1.5 rounded-full bg-amber-400 text-[#031c47] text-sm font-semibold hover:bg-amber-300 transition-all"
+                  >
+                    Set
+                  </button>
+                </div>
+              )}
+              {selectedSlot !== null && (
+                <span className="ml-auto text-xs text-amber-300 font-medium">
+                  {selectedSlot >= 60
+                    ? `${Math.floor(selectedSlot / 60)}h${selectedSlot % 60 ? ` ${selectedSlot % 60}m` : ''}`
+                    : `${selectedSlot} min`} selected
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Search box */}
           <form onSubmit={handleSearch} className="bg-white rounded-2xl p-3 shadow-2xl max-w-3xl mx-auto">
             <div className="flex flex-col sm:flex-row gap-2">
@@ -171,7 +246,7 @@ export default function HomePage() {
       {/* Stats strip */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap justify-center gap-8 text-center text-sm">
-          {[['500+', 'Parking Spots'], ['50K+', 'Happy Drivers'], ['4.8★', 'Avg Rating'], ['24/7', 'Support']].map(([val, label]) => (
+          {[['650+', 'Parking Spots'], ['50K+', 'Happy Drivers'], ['4.8★', 'Avg Rating'], ['24/7', 'Support']].map(([val, label]) => (
             <div key={label}>
               <div className="font-bold text-[#031c47] text-lg">{val}</div>
               <div className="text-gray-500">{label}</div>

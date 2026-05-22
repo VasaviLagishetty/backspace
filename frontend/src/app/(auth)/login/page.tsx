@@ -46,7 +46,7 @@ export default function LoginPage() {
           Smart parking near you. Find, book, and pay for parking spots in seconds.
         </p>
         <div className="mt-10 grid grid-cols-2 gap-4 w-full max-w-xs text-center">
-          {[['500+', 'Spots'], ['50K+', 'Drivers'], ['4.8★', 'Rating'], ['24/7', 'Support']].map(([v, l]) => (
+          {[['650+', 'Spots'], ['50K+', 'Drivers'], ['4.8★', 'Rating'], ['24/7', 'Support']].map(([v, l]) => (
             <div key={l} className="bg-white/10 rounded-xl p-4">
               <div className="text-xl font-bold text-amber-400">{v}</div>
               <div className="text-sm text-blue-200">{l}</div>
