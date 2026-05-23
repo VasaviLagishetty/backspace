@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
           <div className="bg-[#031c47] rounded-xl p-2">
             <Car className="h-6 w-6 text-amber-400" />
           </div>
-          <span className="text-xl font-bold text-[#031c47]">backspace</span>
+          <span className="text-xl font-bold text-[#031c47]">Backspace</span>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">

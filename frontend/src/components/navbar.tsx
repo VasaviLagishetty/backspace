@@ -2,9 +2,10 @@
 import Link from 'next/link'
 
 import { useRouter } from 'next/navigation'
-import { Bell, Heart, User, LogOut, LayoutDashboard, PlusCircle, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { Bell, Heart, User, LogOut, LayoutDashboard, PlusCircle, Menu, X, Sun, Moon, Monitor } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
+import { useThemeStore } from '@/lib/theme-store'
 import { Button } from './ui/button'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -15,8 +16,14 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 
 export function Navbar() {
   const { user, logout } = useAuthStore()
+  const { theme, setTheme } = useThemeStore()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  const ThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor
 
   return (
     <nav className="sticky top-0 z-50 bg-[#031c47] shadow-md">
@@ -28,6 +35,26 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-2">
+          {mounted && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10">
+                <ThemeIcon className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
+              <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-gray-700 dark:text-gray-200">
+                <Sun className="mr-2 h-4 w-4" /> Light
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-gray-700 dark:text-gray-200">
+                <Moon className="mr-2 h-4 w-4" /> Dark
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-gray-700 dark:text-gray-200">
+                <Monitor className="mr-2 h-4 w-4" /> System
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          )}
           {user ? (
             <>
               <Link href="/favorites">
@@ -91,6 +118,13 @@ export function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden bg-[#031c47] border-t border-white/10 px-4 pb-4 space-y-2">
+          <div className="flex items-center gap-3 py-1.5">
+            {([['light', Sun, 'Light'], ['dark', Moon, 'Dark'], ['system', Monitor, 'System']] as const).map(([t, Icon, label]) => (
+              <button key={t} onClick={() => setTheme(t)} className={`flex items-center gap-1 text-sm px-2.5 py-1 rounded-lg ${theme === t ? 'bg-amber-400 text-[#031c47] font-semibold' : 'text-white/70 hover:text-white'}`}>
+                <Icon className="h-3.5 w-3.5" /> {label}
+              </button>
+            ))}
+          </div>
           {user ? (
             <>
               <div className="text-white/70 text-sm pt-2">{user.name}</div>

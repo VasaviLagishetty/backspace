@@ -30,4 +30,16 @@ router.delete('/:id', async (req: Request, res: Response) => { const authReq = r
   res.json({ success: true })
 })
 
+router.patch('/:id', async (req: Request, res: Response) => { const authReq = req as AuthRequest;
+  try {
+    const { make, model, year, type, licensePlate, width, length } = req.body
+    const vehicle = await prisma.vehicle.updateMany({ where: { id: req.params.id, userId: authReq.user!.userId }, data: { make, model, year, type, licensePlate, width, length } })
+    if (vehicle.count === 0) return res.status(404).json({ error: 'Vehicle not found' })
+    const updated = await prisma.vehicle.findUnique({ where: { id: req.params.id } })
+    res.json(updated)
+  } catch (e: any) {
+    res.status(500).json({ error: 'Update failed' })
+  }
+})
+
 export default router

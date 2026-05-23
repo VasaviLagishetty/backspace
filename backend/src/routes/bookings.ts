@@ -73,6 +73,7 @@ router.post('/',
 
 // Get booking by ID
 router.get('/:id', async (req: Request, res: Response) => { const authReq = req as AuthRequest;
+  if (req.params.id === 'host') return res.status(404).json({ error: 'Not found' })
   const booking = await prisma.booking.findFirst({
     where: { id: req.params.id, userId: authReq.user!.userId },
     include: {

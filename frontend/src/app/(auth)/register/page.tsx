@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Car, Loader2, Mail, Lock, User, Phone, MapPin, Building2 } from 'lucide-react'
+import { Car, Loader2, Mail, Lock, User, Phone, MapPin } from 'lucide-react'
 import { toast } from '@/components/ui/toaster'
 import { useAuthStore } from '@/lib/auth-store'
 import api from '@/lib/api'
@@ -15,23 +15,20 @@ const schema = z.object({
   email: z.string().email(),
   phone: z.string().regex(/^[6-9]\d{9}$/, 'Enter valid 10-digit mobile number'),
   password: z.string().min(8, 'Minimum 8 characters'),
-  role: z.enum(['USER', 'HOST']),
 })
 
 export default function RegisterPage() {
   const router = useRouter()
   const { setAuth } = useAuthStore()
   const [loading, setLoading] = useState(false)
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<z.infer<typeof schema>>({
+  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { role: 'USER' },
   })
-  const role = watch('role')
 
   const onSubmit = async (data: any) => {
     setLoading(true)
     try {
-      await api.post('/auth/register', data)
+      await api.post('/auth/register', { ...data, role: 'USER' })
       toast({ title: 'Registration successful', description: 'Please login with your credentials' })
       router.push('/login')
     } catch (e: any) {
@@ -46,7 +43,7 @@ export default function RegisterPage() {
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-[#031c47] flex-col items-center justify-center p-12 text-white">
         <img src="/logo.png" alt="Backspace" className="h-20 w-auto object-contain mb-6" />
-        <h2 className="text-3xl font-bold mb-3">Join backspace</h2>
+        <h2 className="text-3xl font-bold mb-3">Join Backspace</h2>
         <p className="text-blue-200 text-center max-w-xs">
           Book parking spots or list your own space and start earning today.
         </p>
@@ -75,7 +72,7 @@ export default function RegisterPage() {
             <div className="bg-[#031c47] rounded-xl p-2">
               <Car className="h-6 w-6 text-amber-400" />
             </div>
-            <span className="text-xl font-bold text-[#031c47]">backspace</span>
+            <span className="text-xl font-bold text-[#031c47]">Backspace</span>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -83,23 +80,6 @@ export default function RegisterPage() {
             <p className="text-gray-500 text-sm mb-7">Fill in your details to get started.</p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* Role selector */}
-              <div className="grid grid-cols-2 gap-3 mb-2">
-                {(['USER', 'HOST'] as const).map(r => (
-                  <button
-                    key={r} type="button"
-                    onClick={() => setValue('role', r)}
-                    className={`flex items-center gap-2 border-2 rounded-xl p-3 text-sm font-medium transition-all ${
-                      role === r
-                        ? 'border-[#031c47] bg-[#031c47] text-white'
-                        : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    {r === 'USER' ? <User className="h-4 w-4" /> : <Building2 className="h-4 w-4" />}
-                    {r === 'USER' ? 'Customer' : 'Host'}
-                  </button>
-                ))}
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>

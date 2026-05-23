@@ -78,6 +78,7 @@ router.get('/search', async (req: Request, res: Response) => {
 
 // Get single spot
 router.get('/:id', async (req: Request, res: Response) => {
+  if (req.params.id === 'host') return res.status(404).json({ error: 'Not found' })
   const spot = await prisma.parkingSpot.findUnique({
     where: { id: req.params.id },
     include: {

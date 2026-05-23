@@ -126,10 +126,18 @@ export default function HomePage() {
                   key={min}
                   type="button"
                   onClick={() => {
-                    setSelectedSlots(prev => prev.includes(min) ? prev.filter(m => m !== min) : [...prev, min])
+                    const newSlots = selectedSlots.includes(min) ? selectedSlots.filter(m => m !== min) : [...selectedSlots, min]
+                    setSelectedSlots(newSlots)
                     setShowCustomInput(false)
                     setCustomHours('')
                     setCustomMinutes('')
+                    if (filters.startTime) {
+                      const totalMin = newSlots.reduce((a, b) => a + b, 0)
+                      if (totalMin > 0) {
+                        const end = new Date(new Date(filters.startTime).getTime() + totalMin * 60000)
+                        setFilters(f => ({ ...f, endTime: end.toISOString() }))
+                      }
+                    }
                   }}
                   className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
                     selectedSlots.includes(min)
@@ -179,7 +187,18 @@ export default function HomePage() {
                       const h = parseInt(customHours) || 0
                       const m = parseInt(customMinutes) || 0
                       const total = h * 60 + m
-                      if (total > 0) { setSelectedSlots(prev => [...prev, total]); setShowCustomInput(false); setCustomHours(''); setCustomMinutes('') }
+                      if (total > 0) {
+                        const newSlots = [...selectedSlots, total]
+                        setSelectedSlots(newSlots)
+                        setShowCustomInput(false)
+                        setCustomHours('')
+                        setCustomMinutes('')
+                        if (filters.startTime) {
+                          const totalMin = newSlots.reduce((a, b) => a + b, 0)
+                          const end = new Date(new Date(filters.startTime).getTime() + totalMin * 60000)
+                          setFilters(f => ({ ...f, endTime: end.toISOString() }))
+                        }
+                      }
                     }}
                     className="px-3 py-1.5 rounded-full bg-amber-400 text-[#031c47] text-sm font-semibold hover:bg-amber-300 transition-all"
                   >
@@ -236,20 +255,36 @@ export default function HomePage() {
               </div>
               <DatePicker
                 selected={filters.startTime ? new Date(filters.startTime) : null}
-                onChange={(date: Date | null) => setFilters(f => ({ ...f, startTime: date ? date.toISOString() : '' }))}
+                onChange={(date: Date | null) => {
+                  const iso = date ? date.toISOString() : ''
+                  const totalMin = selectedSlots.reduce((a, b) => a + b, 0)
+                  if (date && totalMin > 0) {
+                    const end = new Date(date.getTime() + totalMin * 60000)
+                    setFilters(f => ({ ...f, startTime: iso, endTime: end.toISOString() }))
+                  } else {
+                    setFilters(f => ({ ...f, startTime: iso }))
+                  }
+                }}
                 showTimeSelect
                 dateFormat="dd MMM, h:mm aa"
                 placeholderText="Start date & time"
-                className="sm:w-44 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:border-[#031c47] bg-white"
+                className="w-40 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:border-[#031c47] bg-white"
                 minDate={new Date()}
               />
               <DatePicker
                 selected={filters.endTime ? new Date(filters.endTime) : null}
-                onChange={(date: Date | null) => setFilters(f => ({ ...f, endTime: date ? date.toISOString() : '' }))}
+                onChange={(date: Date | null) => {
+                  const iso = date ? date.toISOString() : ''
+                  setFilters(f => ({ ...f, endTime: iso }))
+                  if (date && filters.startTime) {
+                    const diffMin = Math.round((date.getTime() - new Date(filters.startTime).getTime()) / 60000)
+                    if (diffMin > 0) setSelectedSlots([diffMin])
+                  }
+                }}
                 showTimeSelect
                 dateFormat="dd MMM, h:mm aa"
                 placeholderText="End date & time"
-                className="sm:w-44 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:border-[#031c47] bg-white"
+                className="w-40 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-none focus:border-[#031c47] bg-white"
                 minDate={filters.startTime ? new Date(filters.startTime) : new Date()}
               />
               <button
@@ -285,11 +320,79 @@ export default function HomePage() {
             <Filter className="h-3.5 w-3.5" /> Filters
           </button>
           {showFilters && (
-            <>
-              <input placeholder="Min ₹/hr" type="number" className="w-24 h-9 text-sm border border-gray-200 rounded-lg px-3 bg-white outline-none focus:border-[#031c47]" value={filters.minPrice} onChange={e => setFilters(f => ({ ...f, minPrice: e.target.value }))} />
-              <input placeholder="Max ₹/hr" type="number" className="w-24 h-9 text-sm border border-gray-200 rounded-lg px-3 bg-white outline-none focus:border-[#031c47]" value={filters.maxPrice} onChange={e => setFilters(f => ({ ...f, maxPrice: e.target.value }))} />
-              <button onClick={() => fetchSpots()} className="px-4 py-2 rounded-lg text-sm font-medium bg-[#031c47] text-white hover:bg-[#0a2a5c] transition-all">Apply</button>
-            </>
+            <div className="w-full bg-white rounded-xl border border-gray-200 p-4 mt-2 space-y-4">
+              <div>
+                <p className="text-xs font-medium text-gray-600 mb-2">Vehicle / Spot Type</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'All', value: '' },
+                    { label: '⛽ Petrol/Diesel', value: 'regular' },
+                    { label: '⚡ EV Charging', value: 'ev' },
+                    { label: '🏍️ Two Wheeler', value: 'twowheeler' },
+                  ].map(opt => {
+                    const types: string[] = (filters as any).spotTypes || []
+                    const isAll = opt.value === ''
+                    const isActive = isAll ? types.length === 0 : types.includes(opt.value)
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          if (isAll) {
+                            setFilters(f => ({ ...f, spotTypes: [], isEv: false } as any))
+                          } else {
+                            const newTypes = types.includes(opt.value) ? types.filter((t: string) => t !== opt.value) : [...types, opt.value]
+                            setFilters(f => ({ ...f, spotTypes: newTypes, isEv: newTypes.includes('ev') } as any))
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                          isActive
+                            ? 'bg-[#031c47] text-white border-[#031c47]'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-[#031c47]'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-600 mb-2">Price Range (₹/hr)</p>
+                <div className="flex items-center gap-2">
+                  <input placeholder="Min" type="number" className="w-24 h-9 text-sm border border-gray-200 rounded-lg px-3 bg-white outline-none focus:border-[#031c47]" value={filters.minPrice} onChange={e => setFilters(f => ({ ...f, minPrice: e.target.value }))} />
+                  <span className="text-gray-400">—</span>
+                  <input placeholder="Max" type="number" className="w-24 h-9 text-sm border border-gray-200 rounded-lg px-3 bg-white outline-none focus:border-[#031c47]" value={filters.maxPrice} onChange={e => setFilters(f => ({ ...f, maxPrice: e.target.value }))} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => fetchSpots()} className="px-5 py-2 rounded-lg text-sm font-medium bg-[#031c47] text-white hover:bg-[#0a2a5c] transition-all">Apply Filters</button>
+                <button onClick={() => { setFilters(f => ({ ...f, isEv: false, minPrice: '', maxPrice: '', spotTypes: [] } as any)); fetchSpots() }} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all">Clear</button>
+              </div>
+            </div>
+          )}
+
+          <select
+            className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 outline-none focus:border-[#031c47]"
+            value={(filters as any).sortBy || ''}
+            onChange={e => setFilters(f => ({ ...f, sortBy: e.target.value } as any))}
+          >
+            <option value="">Sort by</option>
+            <option value="relevance">Relevance</option>
+            <option value="price">Price</option>
+            <option value="rating">Rating</option>
+            <option value="distance">Distance</option>
+          </select>
+          {(filters as any).sortBy && (filters as any).sortBy !== 'relevance' && (
+            <button
+              type="button"
+              onClick={() => setFilters(f => ({ ...f, sortOrder: (f as any).sortOrder === 'desc' ? 'asc' : 'desc' } as any))}
+              className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 hover:border-[#031c47] transition-all"
+            >
+              {(filters as any).sortBy === 'distance'
+                ? ((filters as any).sortOrder === 'desc' ? '↓ Far to Near' : '↑ Near to Far')
+                : ((filters as any).sortOrder === 'desc' ? '↓ High to Low' : '↑ Low to High')}
+            </button>
           )}
 
           <div className="ml-auto flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
@@ -329,7 +432,23 @@ export default function HomePage() {
           <>
             <p className="text-sm text-gray-500 mb-4">{spots.length} spot{spots.length !== 1 ? 's' : ''} found</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {spots.map(spot => <SpotCard key={spot.id} spot={spot} selectedSlots={selectedSlots} />)}
+              {[...spots].sort((a, b) => {
+                const sort = (filters as any).sortBy
+                const dir = (filters as any).sortOrder === 'desc' ? -1 : 1
+                if (sort === 'relevance') {
+                  const score = (s: Spot) => {
+                    const rating = s.ratingCount > 0 ? (s.totalRating / s.ratingCount) / 5 : 0
+                    const price = 1 - Math.min(s.pricePerHour, 200) / 200
+                    const dist = 1 - Math.min(s.distance ?? 10, 10) / 10
+                    return rating * 0.4 + price * 0.3 + dist * 0.3
+                  }
+                  return (score(b) - score(a)) * dir
+                }
+                if (sort === 'price') return (a.pricePerHour - b.pricePerHour) * dir
+                if (sort === 'rating') return ((a.ratingCount > 0 ? a.totalRating / a.ratingCount : 0) - (b.ratingCount > 0 ? b.totalRating / b.ratingCount : 0)) * dir
+                if (sort === 'distance') return ((a.distance ?? 999) - (b.distance ?? 999)) * dir
+                return 0
+              }).map(spot => <SpotCard key={spot.id} spot={spot} selectedSlots={selectedSlots} />)}
             </div>
           </>
         )}

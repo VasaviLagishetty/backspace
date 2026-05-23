@@ -36,11 +36,11 @@ app.use(cors({ origin: true, credentials: true }))
 app.use(express.json())
 
 // Global rate limit
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }))
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 1000 }))
 
 // Stricter rate limits for auth and booking
-const authLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, message: { error: 'Too many attempts, try again in 1 minute' } })
-const bookingLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { error: 'Too many booking attempts, try again in 1 minute' } })
+const authLimiter = rateLimit({ windowMs: 60 * 1000, max: 1000, message: { error: 'Too many attempts, try again in 1 minute' } })
+const bookingLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, message: { error: 'Too many booking attempts, try again in 1 minute' } })
 
 app.use('/api/auth', authLimiter, authRoutes)
 app.use('/api/otp', authLimiter, otpRoutes)

@@ -84,7 +84,7 @@ export default function SpotDetailPage() {
       await loadRazorpay()
       const rzp = new window.Razorpay({
         key: orderData.key, amount: orderData.amount, currency: orderData.currency,
-        order_id: orderData.orderId, name: 'backspace',
+        order_id: orderData.orderId, name: 'Backspace',
         description: `Parking at ${spot.title}`,
         prefill: { name: user.name, email: user.email },
         theme: { color: '#031c47' },

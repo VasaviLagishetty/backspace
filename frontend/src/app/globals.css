@@ -22,6 +22,74 @@
     --ring: 221 70% 28%;
     --radius: 0.5rem;
   }
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 92%;
+    --card: 222 47% 10%;
+    --card-foreground: 210 20% 92%;
+    --primary: 38 92% 50%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 20% 92%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 16% 60%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 30% 18%;
+    --ring: 38 92% 50%;
+  }
   * { @apply border-border; }
   body { @apply bg-background text-foreground antialiased; }
 }
+
+/* Global dark mode overrides for hardcoded colors */
+.dark .bg-\[\#f4f6fb\] { background-color: #0a0f1a !important; }
+.dark .bg-white { background-color: #111827 !important; }
+.dark .bg-gray-50 { background-color: #1f2937 !important; }
+.dark .bg-gray-100 { background-color: #1f2937 !important; }
+.dark .bg-gray-200 { background-color: #374151 !important; }
+
+.dark .text-gray-900 { color: #f3f4f6 !important; }
+.dark .text-gray-800 { color: #e5e7eb !important; }
+.dark .text-gray-700 { color: #d1d5db !important; }
+.dark .text-gray-600 { color: #9ca3af !important; }
+.dark .text-gray-500 { color: #9ca3af !important; }
+.dark .text-gray-400 { color: #6b7280 !important; }
+.dark .text-\[\#031c47\] { color: #fbbf24 !important; }
+
+.dark .border-gray-100 { border-color: #1f2937 !important; }
+.dark .border-gray-200 { border-color: #374151 !important; }
+.dark .border-gray-50 { border-color: #1f2937 !important; }
+
+.dark .bg-white\/90 { background-color: rgba(17, 24, 39, 0.9) !important; }
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+  border-color: #374151 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+.dark .bg-blue-50 { background-color: #1e3a5f !important; }
+.dark .text-blue-700 { color: #93c5fd !important; }
+.dark .bg-emerald-50 { background-color: #064e3b !important; }
+.dark .text-emerald-700 { color: #6ee7b7 !important; }
+.dark .bg-amber-50 { background-color: #451a03 !important; }
+.dark .text-amber-800 { color: #fcd34d !important; }
+.dark .border-amber-200 { border-color: #92400e !important; }
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-2xl {
+  --tw-shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+.dark .border-dashed { border-color: #374151 !important; }
